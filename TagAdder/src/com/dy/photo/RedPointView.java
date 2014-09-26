@@ -18,8 +18,9 @@ import android.util.Log;
 import android.view.GestureDetector;
 import android.view.MotionEvent;
 import android.view.View;
+import android.widget.ImageView;
 
-public class RedPointView extends View
+public class RedPointView extends ImageView
 // implements OnGestureListener
 {
 
@@ -71,6 +72,9 @@ public class RedPointView extends View
 	private final int RESOLUTION = 512;
 	GestureDetector detector;
 	float disScale;
+	Matrix transPoint;
+	Matrix viewMatrix;
+	int disX;
 
 	public RedPointView(Context context, AttributeSet attrs) {
 		super(context, attrs);
@@ -86,6 +90,11 @@ public class RedPointView extends View
 		// detector = new GestureDetector(context, this);
 		transPic = new Matrix();
 
+		transPoint = new Matrix();
+		transPoint.setScale(0.75f, 0.75f);
+		transPoint.postTranslate(325, -5);
+		viewMatrix = new Matrix();
+
 		this.setOnTouchListener(new RedPointOnTouchListener());
 	}
 
@@ -95,23 +104,20 @@ public class RedPointView extends View
 		// dy:将背景图设定为当前图片
 		// 此处若传入一个不可修改的bitmap会报错
 		// http://bbs.csdn.net/topics/370021698
-		//Log.d(TAG, "绘制，调用onDraw");
+		// Log.d(TAG, "绘制，调用onDraw");
 		if (rawBitmap != null) {
-
 			cacheCanvas.setBitmap(editedBitmap);
 			cacheCanvas.drawColor(Color.BLACK);
 			cacheCanvas.drawBitmap(rawBitmap, transPic, null);
 			// 为背景图添加圆点
-			Matrix transPoint = new Matrix();
-			transPoint.setScale(0.75f, 0.75f);
-			transPoint.postTranslate(325, -5);
 
 			cacheCanvas.drawBitmap(redPoint, transPoint, null);
+			if (disX == 0) {
+				disX = this.getWidth();
+				disScale = disX / (float) RESOLUTION;
+				viewMatrix.setScale(disScale, disScale);
+			}
 
-			Matrix viewMatrix = new Matrix();
-			int disX = this.getWidth();
-			disScale = disX / (float) RESOLUTION;
-			viewMatrix.setScale(disScale, disScale);
 			// 将缓冲区的图片放置于view中显示
 			canvas.setDrawFilter(new PaintFlagsDrawFilter(0,
 					Paint.ANTI_ALIAS_FLAG | Paint.FILTER_BITMAP_FLAG));
@@ -163,14 +169,14 @@ public class RedPointView extends View
 			case MotionEvent.ACTION_DOWN:
 				firstPoint.set(event.getX(), event.getY());
 				mode = DRAG;
-				Log.d(TAG, "ACTION_DOWN  ACTION_DOWN,getRawX()" + stop_x
-						+ "  getRawY()" + stop_y + "   getX()" + start_x
-						+ "  getY()" + start_y);
+				// Log.d(TAG, "ACTION_DOWN  ACTION_DOWN,getRawX()" + stop_x
+				// + "  getRawY()" + stop_y + "   getX()" + start_x
+				// + "  getY()" + start_y);
 				if (event.getPointerCount() == 2)
 					beforeLenght = spacing(event);
 				break;
 			case MotionEvent.ACTION_POINTER_DOWN:
-				Log.d(TAG, "ACTION_DOWN  第二个手指落下");
+				// Log.d(TAG, "ACTION_DOWN  第二个手指落下");
 				/** 下面三句用于计算缩放中心点位置 **/
 				center = centerPostion(event);
 				if (spacing(event) > 10f) {
@@ -180,6 +186,7 @@ public class RedPointView extends View
 				break;
 			case MotionEvent.ACTION_UP:
 				mode = NONE;
+				moveBack();
 				break;
 			case MotionEvent.ACTION_POINTER_UP:
 				mode = NONE;
@@ -188,27 +195,33 @@ public class RedPointView extends View
 			case MotionEvent.ACTION_MOVE:
 
 				if (mode == ZOOM) {
-					//Log.d(TAG, "ACTION_MOVE ZOOM 开始处理缩放");
+					// Log.d(TAG, "ACTION_MOVE ZOOM 开始处理缩放");
 					if (spacing(event) > 10f) {
 						afterLenght = spacing(event);
 						newScale = (afterLenght / beforeLenght);
 						transPic.getValues(matrixArray);
-						Log.d(TAG, "transPic"+matrixArray);
+						//Log.d(TAG, "transPic" + matrixArray);
 						float newvalue = newScale * matrixArray[0];
-						if (newvalue > initScale && newvalue < 1.5&&!isScaleOutOfBoundary(newScale)) {
-							transPic.postScale(newScale, newScale, center[0]
-									/ disScale, center[1] / disScale);
-							beforeLenght = afterLenght;
-						}
+						// if (newvalue > initScale && newvalue <
+						// 1.5&&!isScaleOutOfBoundary(newScale)) {
+						transPic.postScale(newScale, newScale, center[0]
+								/ disScale, center[1] / disScale);
+						beforeLenght = afterLenght;
+						// }
+						// TODO 这里做出判断，重新设置缩放点后是否出界？
+						// else if(){
+
+						// }
 					}
 					/* 处理拖动位移 */
 				} else if (mode == DRAG) {
-					Log.d(TAG, "ACTION_MOVE DRAG 开始处理单手拖动");
+					// Log.d(TAG, "ACTION_MOVE DRAG 开始处理单手拖动");
 					float dx = event.getX() - firstPoint.x;
 					float dy = event.getY() - firstPoint.y;
-					float transx = testBoundaryX(dx);
-					float transy = testBoundaryY(dy);
-					transPic.postTranslate(transx, transy);
+					// float transx = testBoundaryX(dx);
+					// float transy = testBoundaryY(dy);
+					// transPic.postTranslate(transx, transy);
+					transPic.postTranslate(dx / disScale, dy / disScale);
 					firstPoint.set(event.getX(), event.getY());
 				}
 
@@ -231,30 +244,32 @@ public class RedPointView extends View
 			 * invalidate(); return true;
 			 */
 		}
-		
+
 		private boolean isScaleOutOfBoundary(float newScale) {
 			// TODO 该方法用于判断缩放后图片是否完全显示。
-			//通过缩放率，位移矩阵，原始图片高度等数据进行计算。
+			// 通过缩放率，位移矩阵，原始图片高度等数据进行计算。
 			transPic.getValues(matrixArray);
-			//上边>0，越界
-			if(matrixArray[5]*matrixArray[0]*newScale>0){
+			// 上边>0，越界
+			if (matrixArray[5] * matrixArray[0] * newScale > 0) {
 				Log.d(TAG, "上边界超出范围，无法继续拖动");
 				return true;
 			}
-			//左边>0 越
-			if(matrixArray[2]*matrixArray[0]*newScale>0){
+			// 左边>0 越
+			if (matrixArray[2] * matrixArray[0] * newScale > 0) {
 				Log.d(TAG, "左边界超出范围，无法继续拖动");
 				return true;
 			}
-			//下边<512 越界
-			float bottom = (rawBitmap.getHeight()*matrixArray[0]+matrixArray[5])*newScale;
-			if(bottom<RESOLUTION){
+			// 下边<512 越界
+			float bottom = (rawBitmap.getHeight() * matrixArray[0] + matrixArray[5])
+					* newScale;
+			if (bottom < RESOLUTION) {
 				Log.d(TAG, "下边界超出范围，无法继续拖动");
 				return true;
 			}
-			//右边<512
-			float right = (rawBitmap.getWidth()*matrixArray[0]+matrixArray[2])*newScale;
-			if(right<RESOLUTION){
+			// 右边<512
+			float right = (rawBitmap.getWidth() * matrixArray[0] + matrixArray[2])
+					* newScale;
+			if (right < RESOLUTION) {
 				Log.d(TAG, "右边界超出范围，无法继续拖动");
 				return true;
 			}
@@ -263,11 +278,12 @@ public class RedPointView extends View
 
 		private float testBoundaryY(float dy) {
 			transPic.getValues(matrixArray);
-			float bottom = rawBitmap.getHeight()*matrixArray[0]+matrixArray[5]+dy;
-			if(matrixArray[5]+dy>0){
+			float bottom = rawBitmap.getHeight() * matrixArray[0]
+					+ matrixArray[5] + dy;
+			if (matrixArray[5] + dy > 0) {
 				Log.d(TAG, "上边界超出范围，无法继续拖动");
 				return 0;
-			}else if(bottom<RESOLUTION){
+			} else if (bottom < RESOLUTION) {
 				Log.d(TAG, "下边界超出范围，无法继续拖动");
 				return 0;
 			}
@@ -276,22 +292,18 @@ public class RedPointView extends View
 
 		private float testBoundaryX(float dx) {
 			transPic.getValues(matrixArray);
-			float right = rawBitmap.getWidth()*matrixArray[0]+matrixArray[2]+dx;
-			if(matrixArray[2]+dx>0){
+			float right = rawBitmap.getWidth() * matrixArray[0]
+					+ matrixArray[2] + dx;
+			if (matrixArray[2] + dx > 0) {
 				Log.d(TAG, "左边界超出范围，无法继续拖动");
 				return 0;
-			
-			}else if(right<RESOLUTION){
+
+			} else if (right < RESOLUTION) {
 				Log.d(TAG, "右边界超出范围，无法继续拖动");
 				return 0;
 			}
 			return dx;
 		}
-
-	
-		
-		
-		
 
 	}
 
@@ -322,6 +334,10 @@ public class RedPointView extends View
 		transPic.setScale(initScale, initScale);
 		scale = initScale;
 		invalidate();
+	}
+	
+	public void moveBack(){
+		Log.d(TAG,"释放屏幕，进行回馈检测。");
 	}
 
 }

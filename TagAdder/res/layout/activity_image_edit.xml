@@ -6,45 +6,43 @@
     android:background="#000"
     android:orientation="vertical" >
 
-    <TableLayout
+    <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:collapseColumns="3"
-        android:stretchColumns="0,1,2" >
+        android:orientation="horizontal" >
 
-        <TableRow
-            android:id="@+id/tableRow3"
+        <Button
+            android:id="@+id/selectImageBtn"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content" >
+            android:layout_height="wrap_content"
+            android:gravity="center"
+            android:text="选择图片"
+            android:layout_weight="1"
+            android:textColor="#fff"
+            android:textSize="15dp" />
 
-            <Button
-                android:id="@+id/selectImageBtn"
-                android:layout_width="match_parent"
-                android:layout_height="match_parent"
-                android:gravity="center"
-                android:text="选择图片"
-                android:textColor="#fff"
-                android:textSize="15dp" />
+        <Button
+            android:id="@+id/saveImageBtn"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center"
+                        android:layout_weight="1"
+            
+            android:text="保存图片"
+            android:textColor="#fff"
+            android:textSize="15dp" />
 
-            <Button
-                android:id="@+id/saveImageBtn"
-                android:layout_width="match_parent"
-                android:layout_height="match_parent"
-                android:gravity="center"
-                android:text="保存图片"
-                android:textColor="#fff"
-                android:textSize="15dp" />
-
-            <Button
-                android:id="@+id/resetBtn"
-                android:layout_width="match_parent"
-                android:layout_height="match_parent"
-                android:gravity="center"
-                android:text="复 位 "
-                android:textColor="#fff"
-                android:textSize="15dp" />
-        </TableRow>
-    </TableLayout>
+        <Button
+            android:id="@+id/resetBtn"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center"
+                        android:layout_weight="1"
+            
+            android:text="复  位"
+            android:textColor="#fff"
+            android:textSize="15dp" />
+    </LinearLayout>
 
     <TextView
         android:id="@+id/savePathTextView"
